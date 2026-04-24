@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -14,7 +14,6 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Handle 401 globally — clear storage and redirect to login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -22,6 +21,12 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
+    } else if (!error.response) {
+      // Network Error (e.g. CORS failed, Server down)
+      error.response = { data: { message: 'Network error. Please check your connection.' } }
+    } else if (error.response.status >= 500) {
+      // Server Error
+      error.response.data.message = error.response.data.message || 'Server error. Please try again later.'
     }
     return Promise.reject(error)
   }
